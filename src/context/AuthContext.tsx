@@ -58,7 +58,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const loginAsAdmin = useCallback(() => {
-    // Retain this for easy dev testing if desired, or replace with real login
+    
     setCurrentUser({
       id: '07787dd8-aafa-4c6d-a49c-07595438199d',
       ruc: '1790011223002',
@@ -110,7 +110,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
   if (!context) {
