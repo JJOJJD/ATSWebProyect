@@ -17,7 +17,7 @@ interface LoginFormErrors {
 }
 
 export default function LoginPage() {
-  const { login, loginAsAdmin } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [formState, setFormState] = useState<LoginFormState>({ identifier: '', password: '', rememberMe: false });
   const [errors, setErrors] = useState<LoginFormErrors>({});
@@ -45,11 +45,6 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleAdminLogin = () => {
-    loginAsAdmin();
-    navigate('/admin/dashboard');
   };
 
   const handleChange = (field: keyof LoginFormState) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,19 +152,6 @@ export default function LoginPage() {
               {isLoading ? <><span className="spinner" /> Verificando...</> : 'Iniciar Sesión'}
             </button>
           </form>
-
-          <div className="auth-divider">
-            <span>o</span>
-          </div>
-
-          <button
-            id="admin-login-btn"
-            type="button"
-            className="btn btn-secondary btn-full"
-            onClick={handleAdminLogin}
-          >
-            Entrar como Administrador
-          </button>
 
           <p className="auth-footer-text">
             ¿No tienes una cuenta? <Link to="/register" className="auth-link">Regístrate aquí</Link>
