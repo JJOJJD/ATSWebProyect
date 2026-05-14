@@ -1,13 +1,21 @@
 import { useState } from 'react';
-import { User, Mail, Hash, Calendar, Save, Camera, CheckCircle2 } from 'lucide-react';
+import { User, Mail, Hash, Calendar, Save, Camera, CheckCircle2, AlertCircle } from 'lucide-react';
 import AppLayout from '../../components/layout/AppLayout';
 import { useAuth } from '../../context/AuthContext';
+import axios from 'axios';
 import '../../styles/Profile.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+function isValidName(name: string): boolean {
+  return /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(name);
+}
+
 export default function ProfilePage() {
-  const { currentUser } = useAuth();
+  const { currentUser, updateCurrentUser } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
   const [formState, setFormState] = useState({
     firstName: currentUser?.firstName || '',
     lastName: currentUser?.lastName || '',
@@ -17,11 +25,44 @@ export default function ProfilePage() {
 
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
+    setError('');
+    
+    if (!formState.firstName.trim() || !formState.lastName.trim() || !formState.email.trim()) {
+      setError('Todos los campos son obligatorios');
+      return;
+    }
+    
+    if (!isValidName(formState.firstName) || !isValidName(formState.lastName)) {
+      setError('El nombre y apellido no deben contener números ni símbolos');
+      return;
+    }
+    
     setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    setIsSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    try {
+      const response = await axios.post(`${API_URL}/users/update`, {
+        id: currentUser?.id,
+        firstName: formState.firstName,
+        lastName: formState.lastName,
+        email: formState.email
+      });
+      
+      if (response.data.success) {
+        updateCurrentUser({
+          firstName: formState.firstName,
+          lastName: formState.lastName,
+          email: formState.email,
+          birthDate: formState.birthDate
+        });
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      } else {
+        setError(response.data.message || 'Error al actualizar el perfil');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error de conexión con el servidor');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleChange = (field: keyof typeof formState) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,6 +119,12 @@ export default function ProfilePage() {
                 {saved && <span className="badge badge-success">¡Guardado!</span>}
               </div>
               <div className="card-body">
+                {error && (
+                  <div className="alert alert-danger mb-16">
+                    <AlertCircle size={16} />
+                    <span>{error}</span>
+                  </div>
+                )}
                 <form id="profile-form" onSubmit={handleSave} className="flex flex-col gap-16">
                   <div className="grid-2">
                     <div className="form-group">
@@ -138,7 +185,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Toast Notification */}
         {saved && (
           <div className="alert alert-success animate-slide-in-right" style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000, boxShadow: 'var(--shadow-lg)' }}>
             <CheckCircle2 size={18} />

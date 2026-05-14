@@ -14,6 +14,7 @@ interface AuthContextValue {
   logout: () => void;
   connectToSri: (username: string, password: string) => Promise<boolean>;
   disconnectFromSri: () => void;
+  updateCurrentUser: (data: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -91,6 +92,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setSriConnectionStatus('disconnected');
   }, []);
 
+  const updateCurrentUser = useCallback((data: Partial<User>) => {
+    setCurrentUser(prev => prev ? { ...prev, ...data } : null);
+  }, []);
+
   const contextValue: AuthContextValue = {
     currentUser,
     isAuthenticated: currentUser !== null,
@@ -101,6 +106,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     connectToSri,
     disconnectFromSri,
+    updateCurrentUser,
   };
 
   return (

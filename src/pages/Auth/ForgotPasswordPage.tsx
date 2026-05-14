@@ -6,6 +6,10 @@ import '../../styles/Auth.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -18,6 +22,11 @@ export default function ForgotPasswordPage() {
     
     if (!email.trim() || !newPassword.trim()) {
       setError('Todos los campos son obligatorios');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setError('Ingresa un correo electrónico válido');
       return;
     }
     
