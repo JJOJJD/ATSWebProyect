@@ -38,6 +38,10 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function isValidName(name: string): boolean {
+  return /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(name);
+}
+
 export default function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -59,7 +63,9 @@ export default function RegisterPage() {
   const validateForm = (): boolean => {
     const newErrors: RegisterFormErrors = {};
     if (!formState.firstName.trim()) newErrors.firstName = 'Ingresa tu nombre';
+    else if (!isValidName(formState.firstName)) newErrors.firstName = 'El nombre no debe contener números ni símbolos';
     if (!formState.lastName.trim()) newErrors.lastName = 'Ingresa tu apellido';
+    else if (!isValidName(formState.lastName)) newErrors.lastName = 'El apellido no debe contener números ni símbolos';
     if (!formState.ruc.trim()) newErrors.ruc = 'Ingresa tu RUC';
     else if (!isValidRuc(formState.ruc)) newErrors.ruc = `El RUC debe tener ${RUC_LENGTH} dígitos numéricos`;
     if (!formState.email.trim()) newErrors.email = 'Ingresa tu correo electrónico';

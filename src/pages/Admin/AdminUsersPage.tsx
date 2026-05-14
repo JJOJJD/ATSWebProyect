@@ -7,13 +7,22 @@ import '../../styles/AdminUsers.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
+function isValidRuc(ruc: string): boolean {
+  return /^\d{13}$/.test(ruc);
+}
+
+function isValidName(name: string): boolean {
+  return /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(name);
+}
+
 export default function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalError, setModalError] = useState('');
   const [formData, setFormData] = useState({
@@ -40,27 +49,86 @@ export default function AdminUsersPage() {
     fetchUsers();
   }, []);
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const openCreateModal = () => {
+    setIsEditing(false);
+    setEditingUserId(null);
+    setFormData({ ruc: '', firstName: '', lastName: '', email: '', password: '' });
+    setModalError('');
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (user: User) => {
+    setIsEditing(true);
+    setEditingUserId(user.id);
+    setFormData({ ruc: user.ruc, firstName: user.firstName, lastName: user.lastName, email: user.email, password: '' });
+    setModalError('');
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este usuario?')) return;
+    try {
+      const response = await axios.post(`${API_URL}/users/delete`, { id });
+      if (response.data.success) {
+        setUsers(users.filter(u => u.id !== id));
+      } else {
+        alert(response.data.message || 'Error al eliminar el usuario');
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Error al eliminar el usuario');
+    }
+  };
+
+  const handleSubmitUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError('');
     setIsSubmitting(true);
     
-    if (!formData.ruc || !formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-      setModalError('Todos los campos son obligatorios');
+    if (!formData.firstName || !formData.lastName || !formData.email) {
+      setModalError('Los nombres, apellidos y correo son obligatorios');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!isEditing && (!formData.ruc || !formData.password)) {
+      setModalError('Todos los campos son obligatorios para el registro');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!isEditing && !isValidRuc(formData.ruc)) {
+      setModalError('El RUC debe tener 13 dígitos numéricos');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!isValidName(formData.firstName) || !isValidName(formData.lastName)) {
+      setModalError('El nombre y apellido no deben contener números ni símbolos');
       setIsSubmitting(false);
       return;
     }
 
     try {
-      const response = await axios.post(`${API_URL}/users/register`, formData);
-      if (response.data.success) {
-        // Add new user to the top of the list
-        setUsers([response.data.data, ...users]);
-        setIsModalOpen(false);
-        setFormData({ ruc: '', firstName: '', lastName: '', email: '', password: '' });
+      if (isEditing) {
+        const response = await axios.post(`${API_URL}/users/update`, {
+          id: editingUserId,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+        });
+        if (response.data.success) {
+          setUsers(users.map(u => u.id === editingUserId ? { ...u, firstName: formData.firstName, lastName: formData.lastName, email: formData.email } : u));
+          setIsModalOpen(false);
+        }
+      } else {
+        const response = await axios.post(`${API_URL}/users/register`, formData);
+        if (response.data.success) {
+          setUsers([response.data.data, ...users]);
+          setIsModalOpen(false);
+        }
       }
     } catch (error: any) {
-      setModalError(error.response?.data?.message || 'Error al crear el usuario');
+      setModalError(error.response?.data?.message || 'Error al procesar la solicitud');
     } finally {
       setIsSubmitting(false);
     }
@@ -90,7 +158,7 @@ export default function AdminUsersPage() {
               onChange={e => setSearchQuery(e.target.value)}
             />
           </div>
-          <button id="add-user-btn" className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+          <button id="add-user-btn" className="btn btn-primary" onClick={openCreateModal}>
             <Plus size={16} />Agregar Usuario
           </button>
         </div>
@@ -146,10 +214,10 @@ export default function AdminUsersPage() {
                     <td className="text-sm text-muted">{new Date(user.createdAt).toLocaleDateString('es-EC')}</td>
                     <td>
                       <div className="flex gap-4">
-                        <button className="btn btn-ghost btn-sm" aria-label="Editar usuario">
+                        <button className="btn btn-ghost btn-sm" aria-label="Editar usuario" onClick={() => openEditModal(user)}>
                           <Edit2 size={14} />
                         </button>
-                        <button className="btn btn-ghost btn-sm text-danger" aria-label="Eliminar usuario">
+                        <button className="btn btn-ghost btn-sm text-danger" aria-label="Eliminar usuario" onClick={() => handleDeleteUser(user.id)}>
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -161,17 +229,16 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
-        {/* Modal para Crear Usuario */}
         {isModalOpen && (
           <div className="modal-overlay">
             <div className="modal animate-scale-in" style={{ maxWidth: '500px' }}>
               <div className="modal-header">
-                <h3 className="modal-title">Registrar Nuevo Usuario</h3>
+                <h3 className="modal-title">{isEditing ? 'Editar Usuario' : 'Registrar Nuevo Usuario'}</h3>
                 <button className="btn btn-ghost btn-sm" onClick={() => setIsModalOpen(false)}>
                   <X size={18} />
                 </button>
               </div>
-              <form onSubmit={handleCreateUser} className="modal-body">
+              <form onSubmit={handleSubmitUser} className="modal-body">
                 {modalError && (
                   <div className="alert alert-danger mb-16 py-8">
                     <AlertCircle size={14} />
@@ -190,7 +257,7 @@ export default function AdminUsersPage() {
                 </div>
                 <div className="form-group mb-16">
                   <label className="form-label text-sm">Número de RUC</label>
-                  <input type="text" className="form-input" maxLength={13} value={formData.ruc} onChange={e => setFormData({...formData, ruc: e.target.value})} required />
+                  <input type="text" className="form-input" maxLength={13} value={formData.ruc} onChange={e => setFormData({...formData, ruc: e.target.value})} disabled={isEditing} required={!isEditing} />
                 </div>
                 <div className="form-group mb-16">
                   <label className="form-label text-sm">Correo Electrónico</label>
@@ -198,14 +265,14 @@ export default function AdminUsersPage() {
                 </div>
                 <div className="form-group mb-24">
                   <label className="form-label text-sm">Contraseña Temporal</label>
-                  <input type="text" className="form-input" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="Mínimo 8 caracteres" required />
+                  <input type="text" className="form-input" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder={isEditing ? 'No modificable aquí' : 'Mínimo 8 caracteres'} disabled={isEditing} required={!isEditing} />
                 </div>
                 <div className="flex gap-12 justify-end">
                   <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>
                     Cancelar
                   </button>
                   <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                    {isSubmitting ? 'Creando...' : 'Crear Usuario'}
+                    {isSubmitting ? 'Procesando...' : (isEditing ? 'Guardar Cambios' : 'Crear Usuario')}
                   </button>
                 </div>
               </form>
