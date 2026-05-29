@@ -6,6 +6,7 @@ import LandingPage from './pages/Landing/Landing';
 import LoginPage from './pages/Auth/LoginPage';
 import RegisterPage from './pages/Auth/RegisterPage';
 import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage';
+import NoSessionPage from './pages/NoSession/NoSessionPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import SriConnectionPage from './pages/SriConnection/SriConnectionPage';
 import InvoicesDownloadPage from './pages/Invoices/InvoicesDownloadPage';
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="/traceability" element={<ProtectedRoute><TraceabilityPage /></ProtectedRoute>} />
           <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/no-session" element={<NoSessionPage />} />
 
           <Route path="/admin/dashboard" element={<ProtectedRoute requireAdmin><AdminDashboardPage /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsersPage /></ProtectedRoute>} />

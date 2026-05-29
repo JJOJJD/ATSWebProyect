@@ -24,17 +24,30 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const stored = typeof window !== 'undefined' ? localStorage.getItem('currentUser') : null;
+  const initialUser = stored ? JSON.parse(stored) as User : null;
+  if (initialUser) {
+    axios.defaults.headers.common['X-User-Id'] = initialUser.id;
+  }
+  const [currentUser, setCurrentUser] = useState<User | null>(initialUser);
   const [sriConnectionStatus, setSriConnectionStatus] = useState<SriConnectionStatus>('disconnected');
 
   const login = useCallback(async (identifier: string, password: string): Promise<boolean> => {
+    if (!identifier || !password) {
+      console.error('Login validation: identifier and password are required');
+      return false;
+    }
     try {
       const response = await axios.post(`${API_URL}/users/login`, {
         email: identifier,
         password: password
       });
       if (response.data.success) {
-        setCurrentUser(response.data.data);
+        const user = response.data.data;
+        setCurrentUser(user);
+        try { localStorage.setItem('currentUser', JSON.stringify(user)); } catch {}
+        // set header for subsequent requests
+        axios.defaults.headers.common['X-User-Id'] = user.id;
         return true;
       }
       return false;
@@ -75,6 +88,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = useCallback(() => {
     setCurrentUser(null);
     setSriConnectionStatus('disconnected');
+    try { localStorage.removeItem('currentUser'); } catch {}
+    delete axios.defaults.headers.common['X-User-Id'];
   }, []);
 
   const connectToSri = useCallback(async (username: string, password: string): Promise<boolean> => {

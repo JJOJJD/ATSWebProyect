@@ -11,7 +11,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
   const { isAuthenticated, currentUser } = useAuth();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/no-session" replace />;
   }
 
   if (requireAdmin && currentUser?.role !== 'admin') {
